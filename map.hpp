@@ -1,6 +1,6 @@
 /**
- * implement a container like std::map
- */
+* implement a container like std::map
+*/
 #ifndef SJTU_MAP_HPP
 #define SJTU_MAP_HPP
 
@@ -17,548 +17,830 @@
 
 namespace sjtu {
 
-template<
-	class Key,
-	class T,
-	class Compare = std::less<Key>
-> class map {
-public:
-	/**
-	 * the internal type of data.
-	 * it should have a default constructor, a copy constructor.
-	 * You can use sjtu::map as value_type by typedef.
-	 */
-	typedef pair<const Key, T> value_type;
-	/**
-	 * see BidirectionalIterator at CppReference for help.
-	 *
-	 * if there is anything wrong throw invalid_iterator.
-	 *     like it = map.begin(); --it;
-	 *       or it = map.end(); ++end();
-	 */
+	template<
+		class Key,
+		class T,
+		class Compare = std::less<Key>
+	> class map {
+	public:
+		/**
+		* the internal type of data.
+		* it should have a default constructor, a copy constructor.
+		* You can use sjtu::map as value_type by typedef.
+		*/
+		typedef pair<const Key, T> value_type;
+		/**
+		* see BidirectionalIterator at CppReference for help.
+		*
+		* if there is anything wrong throw invalid_iterator.
+		*     like it = map.begin(); --it;
+		*       or it = map.end(); ++end();
+		*/
 
-	class Node {
-	public:
-		Node() { left = right = NULL; }
-		Node(const int &color) { type = color; }
-		Node(const value_type &value) 
-		{ 
-			key = value.first; 
-			this->value = value.second; 
-			parent = NULL; 
-			type = RED;
-			left = new Node(NIL);
-			right = new Node(NIL);
-		}
-		void initialNode(const value_type &value)
-		{
-			this->key = value.first;
-			this->value = value.second;
-			this->type = RED;
-			left = new Node(NIL);
-			right = new Node(NIL);
-		}
-		bool operator==(const Node &right)
-		{
-			if (this->type == NIL)
-				return NULL == right;
-			else
-				return this == right;
-		}
-		bool operator!=(const Node &right)
-		{
-			if (this->type == NIL)
-				return NULL != right;
-			else
-				return this != right;
-		}
-	public:
-		Key key;
-		T value;
-		Node *left;
-		Node *right;
-		Node *parent;
-		int type;
-	};
-	class RBTree {
-	private:
-		Node *root;
-		size_t _size;
-		Compare comp;
-	private:
-		clearNode(Node *nd)
-		{
-			if (nd->left != NULL)
-				clearNode(nd->left);
-			if (nd->right != NULL)
-				clearNode(nd->right);
-			delete nd;
-		}
-	public:
-		RBTree() { root = NULL; comp = c(); }
-		size_t size() { return _size; }
-		bool empty() { return root == NULL; }
-		void clear()
-		{
-			
-		}
-		Node* begin() {
-			Node* rNode = root;
-			while (rNode->left != NULL && rNode->type != NIL)
-			{
-				rNode = rNode->left;
-			}
-			return rNode;
-		}
-		Node* end() {
-			Node* rNode = root;
-			while (rNode->right != NULL)
-			{
-				rNode = rNode->right;
-			}
-			return rNode;
-		}
-		Node* insert(const value_type &value) {
-			if (root == NULL)
-			{
-				root = new Node(value);
-				root->type = BLACK;
-				return root;
-			}
-			Node* pNode = NULL;
-			Node* cNode = root;
-			while (cNode != NULL && cNode->type != NIL)
-			{
-				if (comp(cNode->value, value.first))
-				{
-					pNode = cNode;
-					cNode = cNode->right;
-				}
-				else if (comp(value.first, cNode->value))
-				{
-					pNode = cNode;
-					cNode = cNode->left;
-				}
-				else // value already exist
-				{
-					return NULL;
-				}
-			}
-			// insert
-			cNode->initialNode(value);
-			cNode->parent = pNode;
-			if (comp(value.first, pNode->key))
-			{
-				pNode->left = cNode;
-			}
-			else if (comp(pNode->key, value.first))
-			{
-				pNode->right = cNode;
-			}
-
-			// fixed up
-			insert_fixed_up(cNode);
-		}
-		Node* find(Key key) {
-			Node *ret = NULL;
-			if (root == NULL)
-				return ret;
-			ret = root;
-			while (root != NULL && root->type != NIL) {
-				if (comp(key, ret->value))
-				{
-					root = root->left;
-				}
-				else if (comp(ret->value, key))
-				{
-					root = root->right;
-				}
+		class Node {
+		public:
+			Node() { left = right = NULL; }
+			Node(Node *other) 
+			{ 
+				if (other->vt != NULL)
+					vt = new value_type(*other->vt);
 				else
-				{
-					break;
-				}
+					vt = NULL;
+				type = other->type;
+				left = right = parent = NULL;
 			}
-			return ret;
-		}
-		void remove(const value_type &value)
-		{
-
-		}
-
-		void print()
-		{
-			printNode(root);
-		}
-		void printNode(Node* nd)
-		{
-			if (nd->left != NULL && nd->left->type != NIL)
-				printNode(nd->left);
-			std::cout << nd->key << " " << nd->value << " " << nd->type << std::endl;
-			if (nd->right != NULL && nd->right->type != NIL)
-				printNode(nd->right);
-		}
-		
-	private:
-		void insert_fixed_up(Node* cNode)
-		{
-			Node *pNode = cNode->parent;
-			while (cNode != root && pNode->type == RED)
+			Node(const int &color) { type = color; left = right = nullptr; }
+			Node(const value_type &value)
 			{
-				Node *gNode = pNode->parent;
-				Node *uNode = NULL;
-				// left
-				if (pNode == gNode->left)
-				{
-					uNode = gNode->right;
-					/* case-1:
-					 * curr    left
-					 * father  left  red
-					 * uncle   right red
-					 */
-					if (uNode && uNode->type == RED)
-					{
-						pNode->type = uNode->type = BLACK;
-						gNode->type = RED;
-						cNode = gNode;
-						pNode = gNode->parent;
-						continue;
-					}
-					/* case-2:
-				     * curr    left
-					 * father  left  red
-					 * uncle   right BLACK
-					 */
-					if (cNode == pNode->right)
-					{
-						Node *tmp;
-						leftRotate(pNode);
-						tmp = pNode;
-						pNode = cNode;
-						cNode = tmp;
-					}
-				    /* case-3:
-					 * curr    right
-					 * father  left  red
-					 * uncle   right BLACK
-					 */
-					pNode->type = BLACK;
-					gNode->type = RED;
-					rightRotate(gNode);
-				}
-				else if (pNode == gNode->right)
-				{
-					uNode = gNode->left;
-					if (uNode && uNode->type == RED)
-					{
-						pNode->type = uNode->type = BLACK;
-						gNode->type = RED;
-						cNode = gNode;
-						pNode = gNode->parent;
-						continue;
-					}
-					if (cNode == pNode->left)
-					{
-						Node *tmp;
-						rightRotate(pNode);
-						tmp = pNode;
-						pNode = cNode;
-						cNode = tmp;
-					}
-					pNode->type = BLACK;
-					gNode->type = RED;
-					leftRotate(gNode);
-				}
-				pNode = cNode->parent;
+				vt = new value_type(value);
+				parent = NULL;
+				type = RED;
+				left = new Node(NIL);
+				right = new Node(NIL);
+				left->parent = right->parent = this;
 			}
-			root->type = BLACK;
-		}
-
-		void leftRotate(Node*& parent)
-		{
-			Node* subR = parent->right;
-			Node* subRL = subR->left;
-
-			parent->right = subRL;
-			if (subRL)
+			void initialNode(const value_type &value)
 			{
-				subRL->parent = parent;
+				vt = new value_type(value);
+				this->type = RED;
+				left = new Node(NIL);
+				right = new Node(NIL);
+				left->parent = right->parent = this;
 			}
-
-			subR->left = parent;
-			subR->parent = parent->parent;
-			parent->parent = subR;
-			parent = subR;
-
-			if (parent->parent == NULL)
-			{
-				root = parent;
+			//bool operator==(const Node &right)
+			//{
+			//	if(this != NULL)
+			//		if (this->type == NIL)
+			//			return NULL == right;
+			//	return this == right;
+			//}
+			//bool operator!=(const Node &right)
+			//{
+			//	if (this != NULL)
+			//		if(this->type == NIL)
+			//			return NULL != right;
+			//	return this != right;
+			//}
+			value_type* operator->() const noexcept {
+				return vt;
 			}
-			else if (comp(parent->key, parent->parent->key))
-			{
-				parent->parent->left = parent;
-			}
-			else if (comp(parent->parent->key, parent->key))
-			{
-				parent->parent->right = parent;
-			}
-		}
-
-		void rightRotate(Node*& parent)
-		{
-			Node* subL = parent->left;
-			Node* subLR = subL->right;
-
-			parent->left = subLR;
-			if (subLR)
-			{
-				subLR->parent = parent;
-			}
-
-			subL->right = parent;
-			subL->parent = parent->parent;
-			parent->parent = subL;
-
-			parent = subL;
-
-			if (parent->parent == NULL)
-			{
-				root = parent;
-			}
-			else if (comp(parent->key, parent->parent->key))
-			{
-				parent->parent->left = parent;
-			}
-			else if (comp(parent->parent->key, parent->key))
-			{
-				parent->parent->right = parent;
-			}
-		}
-
-	};
-	class const_iterator;
-	class iterator {
-	private:
-		Node* nd;
-		value_type vt;
-	public:
-		iterator() {
-			nd = NULL;
-		}
-		iterator(const iterator &other) {
-			nd = other.nd;
-			vt = other.vt;
-		}
-		iterator(Node* nd) {
-			this->nd = nd;
-			vt.first = nd->key;
-			vt.second = nd->value;
-		}
-		/**
-		 * return a new iterator which pointer n-next elements
-		 *   even if there are not enough elements, just return the answer.
-		 * as well as operator-
-		 */
-		/**
-		 * TODO iter++
-		 */
-		iterator operator++(int) 
-		{
-			Node *p = this->nd;
-			if (p != NULL && p->type != NIL)
-			{
-				// find leftmost child at right sub-tree
-				if (p->right != NULL)
-				{
-					p = p->right;
-					while (p != NULL && p->type != NIL)
-					{
-						p = p->left;
-					}
-				}
-				// if not find, parse parent if its a left sub-tree
-				else if (p->parent != NULL && p->parent->type != NIL)
-				{
-					if (p->parent->left == p)
-					{
-						p = p->parent;
-					}
-				}
-				// reach the position at right of end
-				else
-				{
-					throw index_out_of_bound();
-				}
-				// update vt immediately
-				updateValue();
-				return iterator(p);
-			}
-			else
-			{
-				throw index_out_of_bound();
-			}
-		}
-		/**
-		 * TODO ++iter
-		 */
-		iterator & operator++() 
-		{
-			if (nd->right != NULL)
-			{
-				nd = nd->right;
-				while (nd->left != NULL && nd->left->type != NIL)
-				{
-					nd = nd->left;
-				}
-			}
-			else if (nd->parent != NULL)
-			{
-				if (nd->parent->left == nd)
-				{
-					nd = nd->parent;
-				}
-			}
-			else
-			{
-				throw index_out_of_bound();
-			}
-			updateValue();
-			return *this;
-		}
-		/**
-		 * TODO iter--
-		 */
-		iterator operator--(int) 
-		{
-			Node *p = this->nd;
-			if (p != NULL && p->type != NIL)
-			{
-				// find the rightmost child at left sub-tree
-				if (p->left != NULL && p->left->type != NIL)
-				{
-					p = p->left;
-					while (p->right != NULL && p->right->type != NIL)
-					{
-						p = p->right;
-					}
-				}
-				// if not find, parse parent if its a right sub-tree
-				else if (p->parent != NULL)
-				{
-					if (p->parent->right == p)
-					{
-						p = p->parent;
-					}
-				}
-				else
-				{
-					throw index_out_of_bound();
-				}
-				updateValue();
-				return iterator(p);
-			}
-			else
-			{
-				throw index_out_of_bound();
-			}
-		}
-		/**
-		 * TODO --iter
-		 */
-		iterator & operator--() 
-		{
-			if (nd->left != NULL)
-			{
-				nd = nd->left;
-				while (nd->right != NULL && nd->right->type != NIL)
-				{
-					nd = nd->right;
-				}
-			}
-			else if (nd->parent != NULL)
-			{
-				if (nd->parent->right == nd)
-				{
-					nd = nd->parent;
-				}
-			}
-			else
-			{
-				throw index_out_of_bound();
-			}
-			updateValue();
-			return *this;
-		}
-		/**
-		 * a operator to check whether two iterators are same (pointing to the same memory).
-		 */
-		value_type & operator*() const 
-		{
-			return value_type(nd->key, nd->value);
-		}
-		bool operator==(const iterator &rhs) const 
-		{
-			return nd == rhs.nd;
-		}
-		bool operator==(const const_iterator &rhs) const 
-		{
-			return nd == rhs.nd;
-		}
-		/**
-		 * some other operator for iterator.
-		 */
-		bool operator!=(const iterator &rhs) const 
-		{
-			return nd != rhs.nd;
-		}
-		bool operator!=(const const_iterator &rhs) const 
-		{
-			return nd != rhs.nd;
-		}
-
-		/**
-		 * for the support of it->first. 
-		 * See <http://kelvinh.github.io/blog/2013/11/20/overloading-of-member-access-operator-dash-greater-than-symbol-in-cpp/> for help.
-		 */
-		value_type* operator->() const noexcept {
-			return &vt;
-		}
-		iterator& operator=(const iterator &rhs) {
-			nd = rhs.nd;
-			vt = rhs.vt;
-			return *this;
-		}
-	
-	private:
-		void updateValue()
-		{
-			vt.first = nd->key;
-			vt.second = nd->value;
-		}		
-	};
-	class const_iterator {
-		// it should has similar member method as iterator.
-		//  and it should be able to construct from an iterator.
+		public:
+			value_type *vt;
+			Node *left;
+			Node *right;
+			Node *parent;
+			int type;
+		};
+		class RBTree {
 		private:
+			Node *root;
+			size_t _size;
+			Compare comp;
+		public:
+			RBTree() 
+			{ 
+				root = NULL;
+				comp = Compare();
+				_size = 0;
+			}
+			RBTree(const RBTree &other)
+			{
+				copyTree(other.root);
+				_size = other.size();
+			}
+			RBTree& operator=(const RBTree &other)
+			{
+				copyTree(other.root);
+				_size = other.size();
+				return *this;
+			}
+			size_t size() 
+			{ 
+				return _size; 
+			}
+			bool empty() 
+			{ 
+				return _size == 0; 
+			}
+			void clear()
+			{
+				clearNode(root);
+				_size = 0;
+			}
+			Node* begin() {
+				Node* rNode = root;
+				if (root == NULL || root->type == NIL)
+				{
+					return rNode;
+				}
+				while (rNode->left != NULL && rNode->type != NIL)
+				{
+					rNode = rNode->left;
+				}
+				return rNode->parent;
+			}
+			Node* end() {
+				Node* rNode = root;
+				if (root == NULL || root->type == NIL)
+				{
+					return rNode;
+				}
+				while (rNode->right != NULL)
+				{
+					rNode = rNode->right;
+				}
+				return rNode;
+			}
+			Node* insert(const value_type &value) {
+				if (root == NULL)
+				{
+					root = new Node(value);
+					root->type = BLACK;
+					_size++;
+					return root;
+				}
+				Node* pNode = NULL;
+				Node* cNode = root;
+				while (cNode != NULL && cNode->type != NIL)
+				{
+					if (comp(cNode->vt->first, value.first))
+					{
+						pNode = cNode;
+						cNode = cNode->right;
+					}
+					else if (comp(value.first, cNode->vt->first))
+					{
+						pNode = cNode;
+						cNode = cNode->left;
+					}
+					else // value already exist
+					{
+						return NULL;
+					}
+				}
+				// insert
+				cNode->initialNode(value);
+				cNode->parent = pNode;
+				if (comp(value.first, pNode->vt->first))
+				{
+					pNode->left = cNode;
+				}
+				else if (comp(pNode->vt->first, value.first))
+				{
+					pNode->right = cNode;
+				}
+
+				// fixed up
+				insert_fixed_up(cNode);
+				_size++;
+			}
+			Node* find(Key key) {
+				Node *ret = NULL;
+				if (root == NULL)
+					return ret;
+				ret = root;
+				while (ret != NULL && ret->type != NIL) {
+					if (comp(key, ret->vt->first))
+					{
+						ret = ret->left;
+					}
+					else if (comp(ret->vt->first, key))
+					{
+						ret = ret->right;
+					}
+					else
+					{
+						break;
+					}
+				}
+				if (ret->vt && !(comp(ret->vt->first, key) && comp(key, ret->vt->first)))
+					return ret;
+				else
+					return NULL;
+			}
+			void remove(const value_type &value)
+			{
+				Node* tNode;
+				Node* sNode;
+				Node* cNode = find(value.first);
+				if (cNode == NULL)
+					return;
+				if (cNode->left->type == NIL || cNode->right->type == NIL)
+				{
+					tNode = cNode;
+				}
+				else
+				{
+					tNode = nextNode(cNode);
+				}
+				
+				if (tNode->left && tNode->left->type != NIL)
+				{
+					sNode = tNode->left;
+				}
+				else
+				{
+					sNode = tNode->right;
+				}
+
+				if (tNode == root)
+				{
+					root = sNode;
+				}
+				else
+				{
+					if (tNode == tNode->parent->left)
+						tNode->parent->left = sNode;
+					else
+						tNode->parent->right = sNode;
+				}
+				sNode->parent = tNode->parent;
+
+				if (tNode != cNode)
+				{
+					if (tNode->type == NIL)
+						std::cout << "!!!" << std::endl;
+					cNode->vt = tNode->vt;
+				}
+				if (tNode->type == BLACK)
+					delete_fixed_up(sNode);
+				delete tNode;
+				if (root->type == NIL)
+				{
+					delete root;
+					root = NULL;
+				}
+				_size--;
+			}
+
+			void print()
+			{
+				printNode(root);
+			}
+			void printNode(Node* nd)
+			{
+				if (nd->left != NULL && nd->left->type != NIL)
+					printNode(nd->left);
+				std::cout << nd->vt->first << " " << nd->vt->second << " " << nd->type << std::endl;
+				if (nd->right != NULL && nd->right->type != NIL)
+					printNode(nd->right);
+			}
+
+		private:
+			Node* nextNode(Node *cNode)
+			{
+				Node* t;
+				if (cNode->type != NIL && cNode->right->type != NIL)
+				{
+					t = cNode->right;
+					while (t->left && t->left->type != NIL)
+						t = t->left;
+					return t;
+				}
+				t = cNode->parent;
+				while (t->type != NIL && cNode == t->parent->right)
+				{
+					cNode = t;
+					t = t->parent;
+				}
+				return t;
+			}
+			void insert_fixed_up(Node* cNode)
+			{
+				Node *pNode = cNode->parent;
+				while (cNode != root && pNode->type == RED)
+				{
+					Node *gNode = pNode->parent;
+					Node *uNode = NULL;
+					// left
+					if (pNode == gNode->left)
+					{
+						uNode = gNode->right;
+						/* case-1:
+						* curr    left
+						* father  left  red
+						* uncle   right red
+						*/
+						if (uNode && uNode->type == RED)
+						{
+							pNode->type = uNode->type = BLACK;
+							gNode->type = RED;
+							cNode = gNode;
+							pNode = gNode->parent;
+							continue;
+						}
+						/* case-2:
+						* curr    left
+						* father  left  red
+						* uncle   right BLACK
+						*/
+						if (cNode == pNode->right)
+						{
+							Node *tmp;
+							leftRotate(pNode);
+							tmp = pNode;
+							pNode = cNode;
+							cNode = tmp;
+						}
+						/* case-3:
+						* curr    right
+						* father  left  red
+						* uncle   right BLACK
+						*/
+						pNode->type = BLACK;
+						gNode->type = RED;
+						rightRotate(gNode);
+					}
+					else if (pNode == gNode->right)
+					{
+						uNode = gNode->left;
+						if (uNode && uNode->type == RED)
+						{
+							pNode->type = uNode->type = BLACK;
+							gNode->type = RED;
+							cNode = gNode;
+							pNode = gNode->parent;
+							continue;
+						}
+						if (cNode == pNode->left)
+						{
+							Node *tmp;
+							rightRotate(pNode);
+							tmp = pNode;
+							pNode = cNode;
+							cNode = tmp;
+						}
+						pNode->type = BLACK;
+						gNode->type = RED;
+						leftRotate(gNode);
+					}
+					pNode = cNode->parent;
+				}
+				root->type = BLACK;
+			}
+
+			void delete_fixed_up(Node* cNode)
+			{
+				Node *wNode;
+				Node *pNode;
+				// set black if its red
+				if (cNode->type == RED)
+					cNode->type = BLACK;
+				else
+				{
+					while (cNode != root && cNode->type != RED)
+					{
+						pNode = cNode->parent;
+						// left case
+						if (cNode == cNode->parent->left)
+						{
+							wNode = cNode->parent->right;
+							// case1: sibling is red. change to case 2-4
+							if (wNode->type == RED)
+							{
+								wNode->type = BLACK;
+								cNode->parent->type = RED;
+								leftRotate(pNode);
+								wNode = cNode->parent->right;
+							}	
+							// case2:
+							if ((!wNode->left || wNode->left->type != RED) && (!wNode->right || wNode->right->type != RED))
+							{
+								wNode->type = RED;
+								cNode = wNode->parent;
+							}
+							else
+							{
+								// case 3: to 4
+								if (!wNode->right || wNode->right->type != RED)
+								{
+									if (wNode->left && wNode->left->type != NIL)
+										wNode->left->type = BLACK;
+									wNode->type = RED;
+									rightRotate(wNode);	
+									wNode = cNode->parent->right;
+								}
+								// case 4:
+								wNode->type = cNode->parent->type;
+								cNode->parent->type = BLACK;
+								if (wNode->right && wNode->right->type != NIL)
+									wNode->right->type = BLACK;
+								pNode = cNode->parent;
+								leftRotate(pNode);
+								break;
+							}
+						}
+						// right case
+						else
+						{
+							wNode = cNode->parent->left;
+							if (wNode->type == RED)
+							{
+								wNode->type = BLACK;
+								cNode->parent->type = RED;
+								rightRotate(pNode);
+								wNode = cNode->parent->left;
+							}
+							if ((!wNode->left || wNode->left->type != RED) && (!wNode->right || wNode->right->type != RED))
+							{
+								wNode->type = RED;
+								cNode = wNode->parent;
+							}
+							else
+							{	
+								if (!wNode->left || wNode->left->type != RED)
+								{
+									if (wNode->right && wNode->right->type != NIL)
+										wNode->right->type = BLACK;
+									wNode->type = RED;
+									leftRotate(wNode);
+									wNode = cNode->parent->left;
+								}
+								wNode->type = cNode->parent->type;
+								cNode->parent->type = BLACK;
+								if (wNode->left && wNode->left->type != NIL)
+									wNode->left->type = BLACK;
+								pNode = cNode->parent;
+								rightRotate(pNode);
+								break;
+							}
+						}
+					} // end while
+				} // end else
+				if (cNode)
+				{
+					if (cNode->type != NIL)
+						cNode->type = BLACK;
+					else
+						cNode->type = NIL;
+				}
+			}
+
+			void leftRotate(Node*& parent)
+			{
+				Node* subR = parent->right;
+				Node* subRL = subR->left;
+
+				parent->right = subRL;
+				if (subRL)
+				{
+					subRL->parent = parent;
+				}
+
+				subR->left = parent;
+				subR->parent = parent->parent;
+				parent->parent = subR;
+				parent = subR;
+
+				if (parent->parent == NULL)
+				{
+					root = parent;
+				}
+				else if (parent->parent->left == parent->left)
+				{
+					parent->parent->left = parent;
+				}
+				else if (parent->parent->right == parent->left)
+				{
+					parent->parent->right = parent;
+				}
+			}
+
+			void rightRotate(Node*& parent)
+			{
+				Node* subL = parent->left;
+				Node* subLR = subL->right;
+
+				parent->left = subLR;
+				if (subLR)
+				{
+					subLR->parent = parent;
+				}
+
+				subL->right = parent;
+				subL->parent = parent->parent;
+				parent->parent = subL;
+
+				parent = subL;
+
+				if (parent->parent == NULL)
+				{
+					root = parent;
+				}
+				else if (parent->parent->left == parent->right)
+				{
+					parent->parent->left = parent;
+				}
+				else if (parent->parent->right == parent->right)
+				{
+					parent->parent->right = parent;
+				}
+			}
+
+			Node *sibling(Node* cNode)
+			{
+				if (cNode == NULL || cNode->parent == NULL)
+					return NULL;
+				if (cNode == cNode->parent->left)
+					return cNode->parent->right;
+				else
+					return cNode->parent->left;
+			}
+		public:
+			void copyTree(RBTree *t)
+			{
+				if (t == NULL || t->root == NULL)
+					return;
+				copyNode(root, t->root);
+				_size = t->size();
+			}
+			void copyTree(Node *rt)
+			{
+				if (rt == NULL)
+					return;
+				copyNode(root, rt);
+			}
+		private:
+			void copyNode(Node *&t, Node *&r)
+			{
+				if (r != NULL)
+				{
+					t = new Node(r);
+					if (r->type != NIL)
+					{
+						copyNode(t->left, r->left);
+						t->left->parent = t;
+						copyNode(t->right, r->right);
+						t->right->parent = t;
+					}
+				}
+			}
+
+			void clearNode(Node *p)
+			{
+				if (p->left)
+					clearNode(p->left);
+				if (p->right)
+					clearNode(p->right);
+				delete p;
+			}
+
+		};
+		class const_iterator;
+		class iterator {
+		public:
+			Node* nd;
+		public:
+			iterator() {
+				nd = NULL;
+			}
+			iterator(const iterator &other) {
+				nd = other.nd;
+			}
+			iterator(Node* nd) {
+				this->nd = nd;
+			}
+			/**
+			* return a new iterator which pointer n-next elements
+			*   even if there are not enough elements, just return the answer.
+			* as well as operator-
+			*/
+			/**
+			* TODO iter++
+			*/
+			iterator operator++(int)
+			{
+				Node* t = this->nd;
+				Node* cNode = this->nd;
+				Node* end = getEnd();
+				if (cNode == getEnd())
+					throw index_out_of_bound();
+				if (cNode->right == end)
+				{
+					this->nd = end;
+					return iterator(end);
+				}
+				if (cNode->right->type != NIL)
+				{
+					t = cNode->right;
+					while (t->left->type != NIL)
+						t = t->left;
+					this->nd = t;
+					return iterator(t);
+				}
+				if (cNode->parent)
+				{
+					t = cNode->parent;
+					while (t->parent && t->type != NIL && cNode == t->right)
+					{
+						cNode = t;
+						t = t->parent;
+					}
+				}
+				if (t)
+				{
+					this->nd = t;
+					return iterator(t);
+				}
+				else
+					throw index_out_of_bound();
+			}
+			/**
+			* TODO ++iter
+			*/
+			iterator & operator++()
+			{
+				Node* t = this->nd;
+				Node* cNode = this->nd;
+				Node* end = getEnd();
+				if (cNode == end)
+					throw index_out_of_bound();
+				if (cNode->right == end)
+				{
+					this->nd = end;
+					return *this;
+				}
+				if (cNode->right->type != NIL)
+				{
+					t = cNode->right;
+					while (t->left->type != NIL)
+						t = t->left;
+					this->nd = t;
+					return *this;
+				}
+				if (cNode->parent)
+				{
+					t = cNode->parent;
+					while (t->type != NIL && cNode == t->right)
+					{
+						cNode = t;
+						t = t->parent;
+					}
+				}
+				this->nd = t;
+				if (t->type != NIL)
+					return *this;
+				else
+					throw index_out_of_bound();
+			}
+			/**
+			* TODO iter--
+			*/
+			iterator operator--(int)
+			{
+				Node* t = this->nd;
+				Node* cNode = this->nd;
+				Node* begin = getBegin();
+				if (cNode == begin)
+					throw index_out_of_bound();
+				if (cNode->left && cNode->left->type != NIL)
+				{
+					t = cNode->left;
+					while (t->right->type != NIL)
+						t = t->right;
+					this->nd = t;
+					return iterator(t);
+				}
+				if (cNode->parent)
+				{
+					t = cNode->parent;
+					while (t->type != NIL && cNode == t->left)
+					{
+						cNode = t;
+						t = t->parent;
+					}
+				}
+				this->nd = t;
+				if (t->type != NIL)
+					iterator(t);
+				else
+					throw index_out_of_bound();
+			}
+			/**
+			* TODO --iter
+			*/
+			iterator & operator--()
+			{
+				Node* t = this->nd;
+				Node* cNode = this->nd;
+				Node* begin = getBegin();
+				if (cNode == begin)
+					throw index_out_of_bound();
+				if (cNode->left && cNode->left->type != NIL)
+				{
+					t = cNode->left;
+					while (t->right->type != NIL)
+						t = t->right;
+					this->nd = t;
+					return *this;
+				}
+				if (cNode->parent)
+				{
+					t = cNode->parent;
+					while (t->type != NIL && cNode == t->left)
+					{
+						cNode = t;
+						t = t->parent;
+					}
+				}
+				this->nd = t;
+				if (t->type != NIL)
+					return *this;
+				else
+					throw index_out_of_bound();
+			}
+			/**
+			* a operator to check whether two iterators are same (pointing to the same memory).
+			*/
+			value_type & operator*() const
+			{
+				return value_type(nd->key, nd->value);
+			}
+			bool operator==(const iterator &rhs) const
+			{
+				return nd == rhs.nd;
+			}
+			bool operator==(const const_iterator &rhs) const
+			{
+				return nd == rhs.nd;
+			}
+			/**
+			* some other operator for iterator.
+			*/
+			bool operator!=(const iterator &rhs) const
+			{
+				return nd != rhs.nd;
+			}
+			bool operator!=(const const_iterator &rhs) const
+			{
+				return nd != rhs.nd;
+			}
+
+			/**
+			* for the support of it->first.
+			* See <http://kelvinh.github.io/blog/2013/11/20/overloading-of-member-access-operator-dash-greater-than-symbol-in-cpp/> for help.
+			*/
+			value_type* operator->() const noexcept {
+				return nd->vt;
+			}
+			iterator& operator=(const iterator &rhs) {
+				nd = rhs.nd;
+				return *this;
+			}
+		private:
+			Node* getRoot()
+			{
+				Node *p = nd;
+				if (p)
+				{
+					while (p->parent)
+					{
+						p = p->parent;
+					}
+				}
+				return p;
+			}
+			Node* getBegin()
+			{
+				Node *r = getRoot();
+				while (r->left)
+				{
+					r = r->left;
+				}
+				if (r)
+					r = r->parent;
+				return r;
+			}
+			Node* getEnd()
+			{
+				Node *r = getRoot();
+				while (r->right)
+				{
+					r = r->right;
+				}
+				return r;
+			}
+		};
+		class const_iterator {
+			// it should has similar member method as iterator.
+			//  and it should be able to construct from an iterator.
+		public:
 			const Node* nd;
-			value_type vt;
-	    public:
+		public:
 			const_iterator() {
 				nd == NULL;
 			}
-			const_iterator(Node* nd) {
-				nd = nd;
+			const_iterator(const Node* nd) {
+				this->nd = nd;
 			}
 			const_iterator(const const_iterator &other) {
 				nd = other.nd;
-				vt = other.vt;
 			}
 			const_iterator(const iterator &other) {
 				nd = other.nd;
-				vt = other.vt;
 			}
 			const_iterator& operator=(const const_iterator &other) {
 				nd = other.nd;
-				vt = other.vt;
 				return *this;
 			}
 			bool operator!=(const const_iterator &other) {
@@ -568,78 +850,92 @@ public:
 				return nd == other.nd;
 			}
 			value_type* operator->() {
-				return &vt;
+				return nd->vt;
 			}
 
 			const_iterator operator++(int)
 			{
-				Node *p = this->nd;
-				if (p != NULL && p->type != NIL)
+				const Node* t = this->nd;
+				const Node* cNode = this->nd;
+				const Node* end = getEnd();
+				if (cNode == end)
+					throw index_out_of_bound();
+				if (cNode->right == end)
 				{
-					// find leftmost child at right sub-tree
-					if (p->right != NULL)
+					this->nd = end;
+					return const_iterator(end);
+				}
+				if (cNode->right->type != NIL)
+				{
+					t = cNode->right;
+					while (t->left->type != NIL)
+						t = t->left;
+					this->nd = t;
+					return const_iterator(t);
+				}
+				if (cNode->parent)
+				{
+					t = cNode->parent;
+					while (t->parent && t->type != NIL && cNode == t->right)
 					{
-						p = p->right;
-						while (p != NULL && p->type != NIL)
-						{
-							p = p->left;
-						}
+						cNode = t;
+						t = t->parent;
 					}
-					// if not find, parse parent if its a left sub-tree
-					else if (p->parent != NULL && p->parent->type != NIL)
-					{
-						if (p->parent->left == p)
-						{
-							p = p->parent;
-						}
-					}
-					// reach the position at right of end
-					else
-					{
-						throw index_out_of_bound();
-					}
-					// update vt immediately
-					updateValue();
-					return const_iterator(p);
+				}
+				if (t)
+				{
+					this->nd = t;
+					return const_iterator(t);
 				}
 				else
-				{
 					throw index_out_of_bound();
-				}
 			}
 			/**
 			* TODO ++iter
 			*/
 			const_iterator & operator++()
 			{
-				if (nd->right != NULL)
+				const Node* t = this->nd;
+				const Node* cNode = this->nd;
+				const Node* end = getEnd();
+				if (cNode == end)
+					throw index_out_of_bound();
+				if (cNode->right == end)
 				{
-					nd = nd->right;
-					while (nd->left != NULL && nd->left->type != NIL)
+					this->nd = end;
+					return *this;
+				}
+				if (cNode->right->type != NIL)
+				{
+					t = cNode->right;
+					while (t->left->type != NIL)
+						t = t->left;
+					this->nd = t;
+					return *this;
+				}
+				if (cNode->parent)
+				{
+					t = cNode->parent;
+					while (t->parent && t->type != NIL && cNode == t->right)
 					{
-						nd = nd->left;
+						cNode = t;
+						t = t->parent;
 					}
 				}
-				else if (nd->parent != NULL)
+				if (t)
 				{
-					if (nd->parent->left == nd)
-					{
-						nd = nd->parent;
-					}
+					this->nd = t;
+					return *this;
 				}
 				else
-				{
 					throw index_out_of_bound();
-				}
-				updateValue();
-				return *this;
 			}
 			/**
 			* TODO iter--
 			*/
 			const_iterator operator--(int)
 			{
-				Node *p = this->nd;
+				const Node *p = this->nd;
 				if (p != NULL && p->type != NIL)
 				{
 					// find the rightmost child at left sub-tree
@@ -663,7 +959,6 @@ public:
 					{
 						throw index_out_of_bound();
 					}
-					updateValue();
 					return const_iterator(p);
 				}
 				else
@@ -695,145 +990,250 @@ public:
 				{
 					throw index_out_of_bound();
 				}
-				updateValue();
 				return *this;
 			}
+			const Node* getRoot()
+			{
+				const Node *p = nd;
+				if (p)
+				{
+					while (p->parent)
+					{
+						p = p->parent;
+					}
+				}
+				return p;
+			}
+			const Node* getEnd()
+			{
+				const Node *r = getRoot();
+				while (r->right)
+				{
+					r = r->right;
+				}
+				return r;
+			}
+			// And other methods in iterator.
+			// And other methods in iterator.
+			// And other methods in iterator.
+		};
+		/**
+		* TODO two constructors
+		*/
+		map() {
+			t = new RBTree();
+		}
+		map(const map &other) {
+			t = new RBTree();
+			t->copyTree(other.t);
+		}
+		/**
+		* TODO assignment operator
+		*/
+		map & operator=(const map &other)
+		{
+			if (!t)
+				t = new RBTree();
+			t->copyTree(other.t);
+			return *this;
+		}
+		/**
+		* TODO Destructors
+		*/
+		~map() {
+
+		}
+		/**
+		* TODO
+		* access specified element with bounds checking
+		* Returns a reference to the mapped value of the element with key equivalent to key.
+		* If no such element exists, an exception of type `index_out_of_bound'
+		*/
+		T & at(const Key &key) 
+		{
+			Node *p = t->find(key);
+			if (p == NULL)
+				throw index_out_of_bound();
+			else
+				return p->vt->second;
+		}
+		const T & at(const Key &key) const 
+		{
+			const T ret;
+			Node *p = t->find(key);
+			if (p == NULL)
+				throw index_out_of_bound();
+			else
+			{
+				ret = p->vt->second;
+				return ret;
+			}
+		}
+		/**
+		* TODO
+		* access specified element
+		* Returns a reference to the value that is mapped to a key equivalent to key,
+		*   performing an insertion if such key does not already exist.
+		*/
+		T & operator[](const Key &key)
+		{
+			Node *p = t->find(key);
+			if (p == NULL)
+			{
+				T dt;
+				t->insert(value_type(key, dt));
+				p = t->find(key);
+			}
+			return p->vt->second;
+		}
+		/**
+		* behave like at() throw index_out_of_bound if such key does not exist.
+		*/
+		const T & operator[](const Key &key) const 
+		{
+			Node *p = t->find(key);
+			if (p == NULL)
+			{
+				T dt;
+				t->insert(value_type(key, dt));
+				p = t->find(key);
+			}
+			return p->vt->second;
+		}
+		/**
+		* return a iterator to the beginning
+		*/
+		iterator begin()
+		{
+			return iterator(t->begin());
+		}
+		const_iterator cbegin() const
+		{
+			return const_iterator(t->begin());
+		}
+		/**
+		* return a iterator to the end
+		* in fact, it returns past-the-end.
+		*/
+		iterator end()
+		{
+			return iterator(t->end());
+		}
+		const_iterator cend() const
+		{
+			return const_iterator(t->end());
+		}
+		/**
+		* checks whether the container is empty
+		* return true if empty, otherwise false.
+		*/
+		bool empty() const
+		{
+			return t->empty();
+		}
+		/**
+		* returns the number of elements.
+		*/
+		size_t size() const
+		{
+			return t->size();
+		}
+		/**
+		* clears the contents
+		*/
+		void clear() 
+		{
+			t->clear();
+		}
+		/**
+		* insert an element.
+		* return a pair, the first of the pair is
+		*   the iterator to the new element (or the element that prevented the insertion),
+		*   the second one is true if insert successfully, or false.
+		*/
+		pair<iterator, bool> insert(const value_type &value) {
+			Node* n = t->insert(value);
+			if (n != NULL)
+			{
+				iterator iter(n);
+				return pair<iterator, bool>(iter, true);
+			}
+			else
+			{
+				iterator iter = this->end();
+				return pair<iterator, bool>(iter, false);
+			}
+		}
+		/**
+		* erase the element at pos.
+		*
+		* throw if pos pointed to a bad element (pos == this->end() || pos points an element out of this)
+		*/
+		void erase(iterator pos) 
+		{
+			if (!pos.nd || pos.nd == t->end())
+				throw index_out_of_bound();
+			Node *p = t->find(pos->first);
+			if (p == NULL)
+				throw invalid_iterator();
+			else
+			{
+				value_type vt(pos->first, pos->second);
+				t->remove(vt);
+			}
+		}
+		/**
+		* Returns the number of elements with key
+		*   that compares equivalent to the specified argument,
+		*   which is either 1 or 0
+		*     since this container does not allow duplicates.
+		* The default method of check the equivalence is !(a < b || b > a)
+		*/
+		size_t count(const Key &key) const {
+			if (t->find(key))
+				return 1;
+			else
+				return 0;
+		}
+		/**
+		* Finds an element with key equivalent to key.
+		* key value of the element to search for.
+		* Iterator to an element with key equivalent to key.
+		*   If no such element is found%, past-the-end (see end()) iterator is returned.
+		*/
+		iterator find(const Key &key) 
+		{
+			Node *p = t->find(key);
+			if (p)
+			{
+				return iterator(p);
+			}
+			else
+			{
+				return iterator(end());
+			}
+		}
+		const_iterator find(const Key &key) const 
+		{
+			Node *p = t->find(key);
+			if (p)
+			{
+				return const_iterator(p);
+			}
+			else
+			{
+				return const_iterator(cend());
+			}
+		}
+		void print() { t->print(); }
 	private:
-		void updateValue()
+		void copyMap(const RBTree &other)
 		{
-			vt.first = nd->key;
-			vt.second = nd->value;
+			t = new RBTree(other);
 		}
-			// And other methods in iterator.
-			// And other methods in iterator.
-			// And other methods in iterator.
+	private:
+		RBTree* t;
 	};
-	/**
-	 * TODO two constructors
-	 */
-	map() {
-		t = new RBTree();
-	}
-	map(const map &other) 
-	{
-
-	}
-	/**
-	 * TODO assignment operator
-	 */
-	map & operator=(const map &other) 
-	{
-
-	}
-	/**
-	 * TODO Destructors
-	 */
-	~map() {
-		delete t;
-	}
-	/**
-	 * TODO
-	 * access specified element with bounds checking
-	 * Returns a reference to the mapped value of the element with key equivalent to key.
-	 * If no such element exists, an exception of type `index_out_of_bound'
-	 */
-	T & at(const Key &key) {}
-	const T & at(const Key &key) const {}
-	/**
-	 * TODO
-	 * access specified element 
-	 * Returns a reference to the value that is mapped to a key equivalent to key,
-	 *   performing an insertion if such key does not already exist.
-	 */
-	T & operator[](const Key &key) {}
-	/**
-	 * behave like at() throw index_out_of_bound if such key does not exist.
-	 */
-	const T & operator[](const Key &key) const {}
-	/**
-	 * return a iterator to the beginning
-	 */
-	iterator begin() 
-	{
-		return iterator(t->begin());
-	}
-	const_iterator cbegin() const 
-	{
-		return const_iterator(t->begin());
-	}
-	/**
-	 * return a iterator to the end
-	 * in fact, it returns past-the-end.
-	 */
-	iterator end() 
-	{ 
-		return iterator(t->end());
-	}
-	const_iterator cend() const 
-	{
-		return const_iterator(t->end());
-	}
-	/**
-	 * checks whether the container is empty
-	 * return true if empty, otherwise false.
-	 */
-	bool empty() const 
-	{
-		return t->empty();
-	}
-	/**
-	 * returns the number of elements.
-	 */
-	size_t size() const {}
-	/**
-	 * clears the contents
-	 */
-	void clear() {}
-	/**
-	 * insert an element.
-	 * return a pair, the first of the pair is
-	 *   the iterator to the new element (or the element that prevented the insertion), 
-	 *   the second one is true if insert successfully, or false.
-	 */
-	pair<iterator, bool> insert(const value_type &value) {
-		Node* n = t->insert(value);
-		if (n != NULL)
-		{
-			iterator iter(n);
-			return pair<iterator, bool>(iter, true);
-		}
-		else
-		{
-			iterator iter = this->end();
-			return pair<iterator, bool>(iter, false);
-		}
-	}
-	/**
-	 * erase the element at pos.
-	 *
-	 * throw if pos pointed to a bad element (pos == this->end() || pos points an element out of this)
-	 */
-	void erase(iterator pos) {}
-	/**
-	 * Returns the number of elements with key 
-	 *   that compares equivalent to the specified argument,
-	 *   which is either 1 or 0 
-	 *     since this container does not allow duplicates.
-	 * The default method of check the equivalence is !(a < b || b > a)
-	 */
-	size_t count(const Key &key) const {}
-	/**
-	 * Finds an element with key equivalent to key.
-	 * key value of the element to search for.
-	 * Iterator to an element with key equivalent to key.
-	 *   If no such element is found, past-the-end (see end()) iterator is returned.
-	 */
-	iterator find(const Key &key) {}
-	const_iterator find(const Key &key) const {}
-	void print() { t->print(); }
-private:
-	RBTree* t;
-};
 
 }
 
