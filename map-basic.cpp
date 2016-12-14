@@ -114,7 +114,8 @@ void tester(void) {
 	std::cout << map.size() << std::endl;
 }
 
-int main(void) {
-	tester();
-	std::cout << Integer::counter << std::endl;
-}
+//int main(void) {
+//	tester();
+//	std::cout << Integer::counter << std::endl;
+//	getchar();
+//}

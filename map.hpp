@@ -39,9 +39,9 @@ namespace sjtu {
 
 		class Node {
 		public:
-			Node() { left = right = NULL; }
-			Node(Node *other) 
-			{ 
+			Node() { vt = NULL; left = right = parent = NULL; type = NIL; }
+			Node(Node *other)
+			{
 				if (other->vt != NULL)
 					vt = new value_type(*other->vt);
 				else
@@ -49,7 +49,7 @@ namespace sjtu {
 				type = other->type;
 				left = right = parent = NULL;
 			}
-			Node(const int &color) { type = color; left = right = nullptr; }
+			Node(const int &color) { vt = NULL; type = color; left = right = nullptr; }
 			Node(const value_type &value)
 			{
 				vt = new value_type(value);
@@ -59,6 +59,18 @@ namespace sjtu {
 				right = new Node(NIL);
 				left->parent = right->parent = this;
 			}
+			~Node()
+			{
+				if (vt)
+					delete vt;
+				type = NIL;
+				if (left)
+					left = NULL;
+				if (right)
+					right = NULL;
+				if (parent)
+					parent = NULL;
+			}
 			void initialNode(const value_type &value)
 			{
 				vt = new value_type(value);
@@ -67,20 +79,6 @@ namespace sjtu {
 				right = new Node(NIL);
 				left->parent = right->parent = this;
 			}
-			//bool operator==(const Node &right)
-			//{
-			//	if(this != NULL)
-			//		if (this->type == NIL)
-			//			return NULL == right;
-			//	return this == right;
-			//}
-			//bool operator!=(const Node &right)
-			//{
-			//	if (this != NULL)
-			//		if(this->type == NIL)
-			//			return NULL != right;
-			//	return this != right;
-			//}
 			value_type* operator->() const noexcept {
 				return vt;
 			}
@@ -97,8 +95,8 @@ namespace sjtu {
 			size_t _size;
 			Compare comp;
 		public:
-			RBTree() 
-			{ 
+			RBTree()
+			{
 				root = NULL;
 				comp = Compare();
 				_size = 0;
@@ -114,18 +112,25 @@ namespace sjtu {
 				_size = other.size();
 				return *this;
 			}
-			size_t size() 
-			{ 
-				return _size; 
+			~RBTree()
+			{
+				if (root)
+					clear();				
 			}
-			bool empty() 
-			{ 
-				return _size == 0; 
+			size_t size()
+			{
+				return _size;
+			}
+			bool empty()
+			{
+				return _size == 0;
 			}
 			void clear()
 			{
-				clearNode(root);
+				if(root)
+					clearNode(root);
 				_size = 0;
+				root = NULL;
 			}
 			Node* begin() {
 				Node* rNode = root;
@@ -193,13 +198,14 @@ namespace sjtu {
 				// fixed up
 				insert_fixed_up(cNode);
 				_size++;
+				return cNode;
 			}
 			Node* find(Key key) {
 				Node *ret = NULL;
 				if (root == NULL)
 					return ret;
 				ret = root;
-				while (ret != NULL && ret->type != NIL) {
+				while (ret != NULL && ret->vt && ret->type != NIL) {
 					if (comp(key, ret->vt->first))
 					{
 						ret = ret->left;
@@ -233,7 +239,7 @@ namespace sjtu {
 				{
 					tNode = nextNode(cNode);
 				}
-				
+
 				if (tNode->left && tNode->left->type != NIL)
 				{
 					sNode = tNode->left;
@@ -258,9 +264,11 @@ namespace sjtu {
 
 				if (tNode != cNode)
 				{
-					if (tNode->type == NIL)
-						std::cout << "!!!" << std::endl;
-					cNode->vt = tNode->vt;
+					if (tNode->type != NIL)
+					{
+						delete cNode->vt;
+						cNode->vt = new value_type(*tNode->vt);
+					}
 				}
 				if (tNode->type == BLACK)
 					delete_fixed_up(sNode);
@@ -402,11 +410,12 @@ namespace sjtu {
 								cNode->parent->type = RED;
 								leftRotate(pNode);
 								wNode = cNode->parent->right;
-							}	
+							}
 							// case2:
 							if ((!wNode->left || wNode->left->type != RED) && (!wNode->right || wNode->right->type != RED))
 							{
-								wNode->type = RED;
+								if(wNode->type != NIL)
+									wNode->type = RED;
 								cNode = wNode->parent;
 							}
 							else
@@ -416,8 +425,9 @@ namespace sjtu {
 								{
 									if (wNode->left && wNode->left->type != NIL)
 										wNode->left->type = BLACK;
-									wNode->type = RED;
-									rightRotate(wNode);	
+									if (wNode->type != NIL)
+										wNode->type = RED;
+									rightRotate(wNode);
 									wNode = cNode->parent->right;
 								}
 								// case 4:
@@ -443,16 +453,18 @@ namespace sjtu {
 							}
 							if ((!wNode->left || wNode->left->type != RED) && (!wNode->right || wNode->right->type != RED))
 							{
-								wNode->type = RED;
+								if (wNode->type != NIL)
+									wNode->type = RED;
 								cNode = wNode->parent;
 							}
 							else
-							{	
+							{
 								if (!wNode->left || wNode->left->type != RED)
 								{
 									if (wNode->right && wNode->right->type != NIL)
 										wNode->right->type = BLACK;
-									wNode->type = RED;
+									if (wNode->type != NIL)
+										wNode->type = RED;
 									leftRotate(wNode);
 									wNode = cNode->parent->left;
 								}
@@ -626,7 +638,7 @@ namespace sjtu {
 					while (t->left->type != NIL)
 						t = t->left;
 					this->nd = t;
-					return iterator(t);
+					return iterator(cNode);
 				}
 				if (cNode->parent)
 				{
@@ -639,8 +651,9 @@ namespace sjtu {
 				}
 				if (t)
 				{
+					cNode = this->nd;
 					this->nd = t;
-					return iterator(t);
+					return iterator(cNode);
 				}
 				else
 					throw index_out_of_bound();
@@ -699,7 +712,7 @@ namespace sjtu {
 					while (t->right->type != NIL)
 						t = t->right;
 					this->nd = t;
-					return iterator(t);
+					return iterator(cNode);
 				}
 				if (cNode->parent)
 				{
@@ -710,9 +723,10 @@ namespace sjtu {
 						t = t->parent;
 					}
 				}
+				cNode = this->nd;
 				this->nd = t;
 				if (t->type != NIL)
-					iterator(t);
+					return iterator(cNode);
 				else
 					throw index_out_of_bound();
 			}
@@ -754,7 +768,7 @@ namespace sjtu {
 			*/
 			value_type & operator*() const
 			{
-				return value_type(nd->key, nd->value);
+				return *nd->vt;
 			}
 			bool operator==(const iterator &rhs) const
 			{
@@ -852,6 +866,10 @@ namespace sjtu {
 			value_type* operator->() {
 				return nd->vt;
 			}
+			value_type & operator*() const
+			{
+				return *nd->vt;
+			}
 
 			const_iterator operator++(int)
 			{
@@ -935,62 +953,66 @@ namespace sjtu {
 			*/
 			const_iterator operator--(int)
 			{
-				const Node *p = this->nd;
-				if (p != NULL && p->type != NIL)
-				{
-					// find the rightmost child at left sub-tree
-					if (p->left != NULL && p->left->type != NIL)
-					{
-						p = p->left;
-						while (p->right != NULL && p->right->type != NIL)
-						{
-							p = p->right;
-						}
-					}
-					// if not find, parse parent if its a right sub-tree
-					else if (p->parent != NULL)
-					{
-						if (p->parent->right == p)
-						{
-							p = p->parent;
-						}
-					}
-					else
-					{
-						throw index_out_of_bound();
-					}
-					return const_iterator(p);
-				}
-				else
-				{
+				const Node* t = this->nd;
+				const Node* cNode = this->nd;
+				const Node* begin = getBegin();
+				if (cNode == begin)
 					throw index_out_of_bound();
+				if (cNode->left && cNode->left->type != NIL)
+				{
+					t = cNode->left;
+					while (t->right->type != NIL)
+						t = t->right;
+					this->nd = t;
+					return const_iterator(t);
 				}
+				if (cNode->parent)
+				{
+					t = cNode->parent;
+					while (t->type != NIL && cNode == t->left)
+					{
+						cNode = t;
+						t = t->parent;
+					}
+				}
+				this->nd = t;
+				if (t->type != NIL)
+					return const_iterator(t);
+				else
+					throw index_out_of_bound();
 			}
 			/**
 			* TODO --iter
 			*/
 			const_iterator & operator--()
 			{
-				if (nd->left != NULL)
-				{
-					nd = nd->left;
-					while (nd->right != NULL && nd->right->type != NIL)
-					{
-						nd = nd->right;
-					}
-				}
-				else if (nd->parent != NULL)
-				{
-					if (nd->parent->right == nd)
-					{
-						nd = nd->parent;
-					}
-				}
-				else
-				{
+				const Node* t = this->nd;
+				const Node* cNode = this->nd;
+				const Node* begin = getBegin();
+				if (cNode == begin)
 					throw index_out_of_bound();
+				if (cNode->left && cNode->left->type != NIL)
+				{
+					t = cNode->left;
+					while (t->right->type != NIL)
+						t = t->right;
+					this->nd = t;
+					return *this;
 				}
-				return *this;
+				if (cNode->parent)
+				{
+					t = cNode->parent;
+					while (t->type != NIL && cNode == t->left)
+					{
+						cNode = t;
+						t = t->parent;
+					}
+				}
+				this->nd = t;
+				if (t->type != NIL)
+					return *this;
+				else
+					throw index_out_of_bound();
 			}
 			const Node* getRoot()
 			{
@@ -1011,6 +1033,17 @@ namespace sjtu {
 				{
 					r = r->right;
 				}
+				return r;
+			}
+			const Node* getBegin()
+			{
+				const Node *r = getRoot();
+				while (r->left)
+				{
+					r = r->left;
+				}
+				if (r)
+					r = r->parent;
 				return r;
 			}
 			// And other methods in iterator.
@@ -1037,11 +1070,17 @@ namespace sjtu {
 			t->copyTree(other.t);
 			return *this;
 		}
+		bool operator==(const map &other)
+		{
+			return t == other.t;
+		}
 		/**
 		* TODO Destructors
 		*/
 		~map() {
-
+			if(t)
+				t->clear();
+			t = new RBTree();
 		}
 		/**
 		* TODO
@@ -1049,7 +1088,7 @@ namespace sjtu {
 		* Returns a reference to the mapped value of the element with key equivalent to key.
 		* If no such element exists, an exception of type `index_out_of_bound'
 		*/
-		T & at(const Key &key) 
+		T & at(const Key &key)
 		{
 			Node *p = t->find(key);
 			if (p == NULL)
@@ -1057,16 +1096,14 @@ namespace sjtu {
 			else
 				return p->vt->second;
 		}
-		const T & at(const Key &key) const 
+		const T & at(const Key &key) const
 		{
-			const T ret;
 			Node *p = t->find(key);
 			if (p == NULL)
 				throw index_out_of_bound();
 			else
 			{
-				ret = p->vt->second;
-				return ret;
+				return p->vt->second;
 			}
 		}
 		/**
@@ -1080,7 +1117,7 @@ namespace sjtu {
 			Node *p = t->find(key);
 			if (p == NULL)
 			{
-				T dt;
+				T dt = T();
 				t->insert(value_type(key, dt));
 				p = t->find(key);
 			}
@@ -1089,15 +1126,11 @@ namespace sjtu {
 		/**
 		* behave like at() throw index_out_of_bound if such key does not exist.
 		*/
-		const T & operator[](const Key &key) const 
+		const T & operator[](const Key &key) const
 		{
 			Node *p = t->find(key);
 			if (p == NULL)
-			{
-				T dt;
-				t->insert(value_type(key, dt));
-				p = t->find(key);
-			}
+				throw index_out_of_bound();
 			return p->vt->second;
 		}
 		/**
@@ -1141,9 +1174,11 @@ namespace sjtu {
 		/**
 		* clears the contents
 		*/
-		void clear() 
+		void clear()
 		{
-			t->clear();
+			if(t)
+				t->clear();
+			t = new RBTree();
 		}
 		/**
 		* insert an element.
@@ -1152,15 +1187,24 @@ namespace sjtu {
 		*   the second one is true if insert successfully, or false.
 		*/
 		pair<iterator, bool> insert(const value_type &value) {
-			Node* n = t->insert(value);
-			if (n != NULL)
-			{
-				iterator iter(n);
-				return pair<iterator, bool>(iter, true);
+			Node *n = t->find(value.first);
+			if(n == NULL)
+			{ 
+				n = t->insert(value);
+				if (n != NULL)
+				{
+					iterator iter(n);
+					return pair<iterator, bool>(iter, true);
+				}
+				else
+				{
+					iterator iter = this->end();
+					return pair<iterator, bool>(iter, false);
+				}
 			}
 			else
 			{
-				iterator iter = this->end();
+				iterator iter(n);
 				return pair<iterator, bool>(iter, false);
 			}
 		}
@@ -1169,12 +1213,13 @@ namespace sjtu {
 		*
 		* throw if pos pointed to a bad element (pos == this->end() || pos points an element out of this)
 		*/
-		void erase(iterator pos) 
+		void erase(iterator pos)
 		{
 			if (!pos.nd || pos.nd == t->end())
 				throw index_out_of_bound();
 			Node *p = t->find(pos->first);
-			if (p == NULL)
+			iterator iter(p); // check if iterator point to this map
+			if (p == NULL || iter != pos)
 				throw invalid_iterator();
 			else
 			{
@@ -1201,7 +1246,7 @@ namespace sjtu {
 		* Iterator to an element with key equivalent to key.
 		*   If no such element is found%, past-the-end (see end()) iterator is returned.
 		*/
-		iterator find(const Key &key) 
+		iterator find(const Key &key)
 		{
 			Node *p = t->find(key);
 			if (p)
@@ -1213,7 +1258,7 @@ namespace sjtu {
 				return iterator(end());
 			}
 		}
-		const_iterator find(const Key &key) const 
+		const_iterator find(const Key &key) const
 		{
 			Node *p = t->find(key);
 			if (p)
