@@ -554,22 +554,22 @@ void easy_test() {
 	cout << endl;
 }
 
-int main() {
-	//freopen("testans_advance.out", "w", stdout);
-	srand(time(NULL));
-	easy_test();
-	if (!check1()) cout << "Test 1 Failed......" << endl; else cout << "Test 1 Passed!" << endl;
-	if (!check2()) cout << "Test 2 Failed......" << endl; else cout << "Test 2 Passed!" << endl;
-	if (!check3()) cout << "Test 3 Failed......" << endl; else cout << "Test 3 Passed!" << endl;
-	if (!check4()) cout << "Test 4 Failed......" << endl; else cout << "Test 4 Passed!" << endl;
-	if (!check5()) cout << "Test 5 Failed......" << endl; else cout << "Test 5 Passed!" << endl;
-	if (!check6()) cout << "Test 6 Failed......" << endl; else cout << "Test 6 Passed!" << endl;
-	if (!check7()) cout << "Test 7 Failed......" << endl; else cout << "Test 7 Passed!" << endl;
-	if (!check8()) cout << "Test 8 Failed......" << endl; else cout << "Test 8 Passed!" << endl;
-	if (!check9()) cout << "Test 9 Failed......" << endl; else cout << "Test 9 Passed!" << endl;
-	if (!check10()) cout << "Test 10 Failed......" << endl; else cout << "Test 10 Passed!" << endl;
-	if (!check11()) cout << "Test 11 Failed......" << endl; else cout << "Test 11 Passed!" << endl;
-	if (!check12()) cout << "Test 12 Failed......" << endl; else cout << "Test 12 Passed!" << endl;
-	if (!check13()) cout << "Test 13 Failed......" << endl; else cout << "Test 13 Passed!" << endl;
-	return 0;
-}
+//int main() {
+//	//freopen("testans_advance.out", "w", stdout);
+//	srand(time(NULL));
+//	easy_test();
+//	if (!check1()) cout << "Test 1 Failed......" << endl; else cout << "Test 1 Passed!" << endl;
+//	if (!check2()) cout << "Test 2 Failed......" << endl; else cout << "Test 2 Passed!" << endl;
+//	if (!check3()) cout << "Test 3 Failed......" << endl; else cout << "Test 3 Passed!" << endl;
+//	if (!check4()) cout << "Test 4 Failed......" << endl; else cout << "Test 4 Passed!" << endl;
+//	if (!check5()) cout << "Test 5 Failed......" << endl; else cout << "Test 5 Passed!" << endl;
+//	if (!check6()) cout << "Test 6 Failed......" << endl; else cout << "Test 6 Passed!" << endl;
+//	if (!check7()) cout << "Test 7 Failed......" << endl; else cout << "Test 7 Passed!" << endl;
+//	if (!check8()) cout << "Test 8 Failed......" << endl; else cout << "Test 8 Passed!" << endl;
+//	if (!check9()) cout << "Test 9 Failed......" << endl; else cout << "Test 9 Passed!" << endl;
+//	if (!check10()) cout << "Test 10 Failed......" << endl; else cout << "Test 10 Passed!" << endl;
+//	if (!check11()) cout << "Test 11 Failed......" << endl; else cout << "Test 11 Passed!" << endl;
+//	if (!check12()) cout << "Test 12 Failed......" << endl; else cout << "Test 12 Passed!" << endl;
+//	if (!check13()) cout << "Test 13 Failed......" << endl; else cout << "Test 13 Passed!" << endl;
+//	return 0;
+//}

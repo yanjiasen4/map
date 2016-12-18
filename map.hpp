@@ -39,7 +39,7 @@ namespace sjtu {
 
 		class Node {
 		public:
-			Node() { vt = NULL; left = right = parent = NULL; type = NIL; }
+			Node() { vt = NULL; left = right = NULL; type = NIL; }
 			Node(Node *other)
 			{
 				if (other->vt != NULL)
@@ -63,22 +63,47 @@ namespace sjtu {
 			{
 				if (vt)
 					delete vt;
+				vt = NULL;
 				type = NIL;
 				if (left)
+				{
 					left = NULL;
+				}
 				if (right)
+				{
 					right = NULL;
-				if (parent)
+				}
+				if(parent)
 					parent = NULL;
 			}
 			void initialNode(const value_type &value)
 			{
 				vt = new value_type(value);
 				this->type = RED;
-				left = new Node(NIL);
-				right = new Node(NIL);
+				if(!left)
+					left = new Node(NIL);
+				else
+					left->type = NIL;
+				if(!right)
+					right = new Node(NIL);
+				else
+					right->type = NIL;
 				left->parent = right->parent = this;
 			}
+			//bool operator==(const Node &right)
+			//{
+			//	if(this != NULL)
+			//		if (this->type == NIL)
+			//			return NULL == right;
+			//	return this == right;
+			//}
+			//bool operator!=(const Node &right)
+			//{
+			//	if (this != NULL)
+			//		if(this->type == NIL)
+			//			return NULL != right;
+			//	return this != right;
+			//}
 			value_type* operator->() const noexcept {
 				return vt;
 			}
@@ -115,7 +140,7 @@ namespace sjtu {
 			~RBTree()
 			{
 				if (root)
-					clear();				
+					clear();
 			}
 			size_t size()
 			{
@@ -243,10 +268,12 @@ namespace sjtu {
 				if (tNode->left && tNode->left->type != NIL)
 				{
 					sNode = tNode->left;
+					tNode->left = NULL;
 				}
 				else
 				{
 					sNode = tNode->right;
+					tNode->right = NULL;
 				}
 
 				if (tNode == root)
@@ -272,7 +299,12 @@ namespace sjtu {
 				}
 				if (tNode->type == BLACK)
 					delete_fixed_up(sNode);
+				if (tNode->left)
+					delete tNode->left;
+				else if(tNode->right)
+					delete tNode->right;
 				delete tNode;
+				tNode = NULL;
 				if (root->type == NIL)
 				{
 					delete root;
@@ -577,7 +609,8 @@ namespace sjtu {
 			{
 				if (r != NULL)
 				{
-					t = new Node(r);
+					if(!t)
+						t = new Node(r);
 					if (r->type != NIL)
 					{
 						copyNode(t->left, r->left);
@@ -1080,7 +1113,8 @@ namespace sjtu {
 		~map() {
 			if(t)
 				t->clear();
-			t = new RBTree();
+			delete t;
+			t = NULL;
 		}
 		/**
 		* TODO
@@ -1178,6 +1212,8 @@ namespace sjtu {
 		{
 			if(t)
 				t->clear();
+			delete t;
+			t = NULL;
 			t = new RBTree();
 		}
 		/**
@@ -1189,7 +1225,7 @@ namespace sjtu {
 		pair<iterator, bool> insert(const value_type &value) {
 			Node *n = t->find(value.first);
 			if(n == NULL)
-			{ 
+			{
 				n = t->insert(value);
 				if (n != NULL)
 				{
@@ -1207,6 +1243,7 @@ namespace sjtu {
 				iterator iter(n);
 				return pair<iterator, bool>(iter, false);
 			}
+
 		}
 		/**
 		* erase the element at pos.
